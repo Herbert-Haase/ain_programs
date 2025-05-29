@@ -1,0 +1,38 @@
+└── ❯ make cppcheck
+cppcheck --enable=warning,style --std=c11 listfiles.c fileinfo.c
+Checking listfiles.c ...
+listfiles.c:0:0: information: Limiting analysis of branches. Use --check-level=exhaustive to analyze all branches. [normalCheckLevelMaxBranches]
+
+^
+1/2 files checked 22% done
+Checking fileinfo.c ...
+2/2 files checked 100% done
+
+└── ❯ valgrind ./listfiles * > /dev/null
+==10873== Memcheck, a memory error detector
+==10873== Copyright (C) 2002-2024, and GNU GPL'd, by Julian Seward et al.
+==10873== Using Valgrind-3.25.0 and LibVEX; rerun with -h for copyright info
+==10873== Command: ./listfiles aufgabe4_protokoll.txt fileinfo.c fileinfo.h fileinfo.o listfiles listfiles.c listfiles-example-dir listfiles.o listfiles-out
+-sorted.txt listfiles-out.txt Makefile
+==10873== 
+==10873== 
+==10873== HEAP SUMMARY:
+==10873==     in use at exit: 0 bytes in 0 blocks
+==10873==   total heap usage: 28 allocs, 28 frees, 140,823 bytes allocated
+==10873== 
+==10873== All heap blocks were freed -- no leaks are possible
+==10873== 
+==10873== For lists of detected and suppressed errors, rerun with: -s
+==10873== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+
+
+
+
+└── ❯ LC_ALL=C sort out.txt > tmp && mv tmp out.txt
+┌  ain2/sypr_uebungen/aufgabe4── main
+└── ❯ LC_ALL=C sort listfiles-out-sorted.txt > tmp && mv tmp listfiles-out-sorted.txt
+
+┌  ain2/sypr_uebungen/aufgabe4── main
+└── ❯ diff -Z out.txt listfiles-out-sorted.txt 
+┌  ain2/sypr_uebungen/aufgabe4── main
+└── ❯ 
