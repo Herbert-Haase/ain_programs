@@ -1,18 +1,9 @@
 #ifndef FILEINFO_H
 #define FILEINFO_H
 
-#define _POSIX_C_SOURCE 200112L
-#include <dirent.h>
-#include <errno.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <assert.h>
-#include <stdbool.h>
+
+#include <stddef.h> // size_t
+#include <limits.h>   // NAME_MAX
 
 extern int errno;
 enum filetype {
@@ -32,7 +23,7 @@ typedef struct fileinfo {
 } fileinfo;
 
 fileinfo *fileinfo_create(const char *filename);
-void fileinfo_print(fileinfo *fi);
+void fileinfo_print(const fileinfo *fi);
 void fileinfo_destroy(fileinfo *fi);
 
 #endif

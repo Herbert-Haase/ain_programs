@@ -1,21 +1,32 @@
 #include "fileinfo.h"
+#include <dirent.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static void list_directory(const char *filename, fileinfo *cd);
 static void print_regular(const char *f_name, const size_t groesse);
-static void fin_print(const char *path, fileinfo *in, bool pMode);
-static void print_directory(const char *path, const char *f_name, fileinfo *in);
+static void fin_print(const char *path, const fileinfo *in, bool pMode);
+static void print_directory(const char *path, const char *f_name,
+                            const fileinfo *in);
 static void print_other(const char *f_name);
 static void f_destroy(fileinfo *fi);
 
 fileinfo *fileinfo_create(const char *filename) {
   errno = 0;
 
-  fileinfo *file_i = malloc(sizeof(fileinfo));
-  assert(file_i != NULL);
   if (strlen(filename) > NAME_MAX) {
     errno = ENAMETOOLONG;
-    perror(filename);
-    free(file_i);
+    return NULL;
+  }
+
+  fileinfo *file_i = malloc(sizeof(fileinfo));
+  if (file_i == NULL) {
     return NULL;
   }
   strcpy(file_i->f_name, filename);
@@ -43,13 +54,12 @@ fileinfo *fileinfo_create(const char *filename) {
 static void list_directory(const char *filename, fileinfo *cd) {
   errno = 0;
   if (chdir(filename) != 0) {
-    perror("chdir");
-    exit(EXIT_FAILURE);
+    return;
   }
   DIR *d = opendir(".");
   if (!d) {
-    perror(filename);
-    exit(EXIT_FAILURE);
+    chdir("../");
+    return;
   }
 
   fileinfo *this = NULL;
@@ -70,14 +80,12 @@ static void list_directory(const char *filename, fileinfo *cd) {
     last = this;
   }
   if (errno) {
-    perror(filename);
     closedir(d);
-    exit(EXIT_FAILURE);
+    return;
   }
   chdir("../");
   if (closedir(d) == -1) {
-    perror(filename);
-    exit(EXIT_FAILURE);
+    return;
   }
 }
 
@@ -86,9 +94,8 @@ static void print_regular(const char *f_name, const size_t groesse) {
 }
 
 static void f_destroy(fileinfo *fi) {
-  if (fi == NULL) {
+  if (fi == NULL)
     return;
-  }
   if (fi->type == filetype_directory) {
     f_destroy(fi->contains);
   }
@@ -96,9 +103,8 @@ static void f_destroy(fileinfo *fi) {
   free(fi);
 }
 void fileinfo_destroy(fileinfo *fi) {
-  if (fi == NULL) {
+  if (fi == NULL)
     return;
-  }
   if (fi->type == filetype_directory) {
     f_destroy(fi->contains);
   }
@@ -106,37 +112,36 @@ void fileinfo_destroy(fileinfo *fi) {
 }
 
 static void print_directory(const char *path, const char *f_name,
-                            fileinfo *fi) {
+                            const fileinfo *fi) {
   char *n_path = malloc(strlen(path) + strlen(f_name) + 2);
-  if (!n_path) {
-    perror("malloc p");
-    exit(1);
+  if (n_path == NULL) {
+    printf("%s/... (PATHTOOLONG or OOM)\n", f_name);
   }
-  strcpy(n_path, path);
+  strcpy(n_path ? n_path : "PATHTOOLONG", path);
   if (strcmp("", path) != 0) {
     strcat(n_path, "/");
   }
-  strcat(n_path, f_name);
-  printf("\n%s:\n", n_path);
-  fileinfo *in_ = fi;
-  in_ = in_->contains;
+  strcat(n_path ? n_path : "PATHTOOLONG", f_name);
+  printf("\n%s:\n", n_path ? n_path : "PATHTOOLONG");
+  fileinfo *in_ = fi->contains;
   if (in_ != NULL) {
-    fin_print(n_path, in_, false);
+    fin_print(n_path ? n_path : "PATHTOOLONG", in_, false);
     while ((in_ = in_->next) != NULL) {
-      fin_print(n_path, in_, false);
+      fin_print(n_path ? n_path : "PATHTOOLONG", in_, false);
     }
   }
   fi = fi->contains;
   if (fi != NULL) {
-    fin_print(n_path, fi, true);
+    fin_print(n_path ? n_path : "PATHTOOLONG", fi, true);
     while ((fi = fi->next) != NULL) {
-      fin_print(n_path, fi, true);
+      fin_print(n_path ? n_path : "PATHTOOLONG", fi, true);
     }
   }
-  free(n_path);
+  if (n_path)
+    free(n_path);
 }
 
-static void fin_print(const char *path, fileinfo *fi, bool pMode) {
+static void fin_print(const char *path, const fileinfo *fi, bool pMode) {
   if (fi->type == filetype_directory) {
     if (pMode) {
       print_directory(path, fi->f_name, fi);
@@ -153,7 +158,7 @@ static void fin_print(const char *path, fileinfo *fi, bool pMode) {
 
 static void print_other(const char *f_name) { printf("%s (other)\n", f_name); }
 
-void fileinfo_print(fileinfo *fi) {
+void fileinfo_print(const fileinfo *fi) {
   if (fi == NULL) {
     return;
   }
