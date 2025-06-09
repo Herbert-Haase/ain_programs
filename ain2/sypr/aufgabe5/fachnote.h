@@ -6,15 +6,15 @@
 
 class fachnote final {
 public:
-  std::string fach;
-  benotung note;
+  const std::string fach;
+  const benotung note;
 
-  fachnote(const std::string &, const benotung &);
+  fachnote(const std::string& s, const benotung n);
   fachnote(const fachnote &f) = delete;
   fachnote &operator=(const fachnote &f) = delete;
   fachnote(fachnote &&f) = delete;
   fachnote &operator=(fachnote &&f) = delete;
-  ~fachnote();
+  ~fachnote() = default;
 };
 
 #endif
