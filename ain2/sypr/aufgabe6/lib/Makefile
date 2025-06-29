@@ -1,19 +1,42 @@
 
 
 
-
-LIBTYPE = a
-
 STD = c++11
 CC = g++
 CXXFLAGS = -Wall -Wextra -Werror -Weffc++ -Wold-style-cast -std=$(STD) -pedantic
+RM = rm -f
 
-.PHONY: all
+SOURCES = benotung.cpp fachnote.cpp fachnoten_liste.cpp
+OBJECTS = $(SOURCES:.cpp=.o)
+HEADERS = $(SOURCES:.cpp=.h)
+LIBNAME = libaufgabe6
+LIBTYPE = a
 
-all:
-ifeq ($(LIBTYPE), a)
-	${CC} -shared benotung.o fachnote.o fachnoten_liste.o -o libaufgabe6.so
-else 
-	ar rs libaufgabe6.a benotung.o fachnote.o fachnoten_liste.o
+ifeq ($(LIBTYPE), so)
+	CXXFLAGS += -fPIC
 endif
 
+.PHONY: all clean
+
+all:
+	$(MAKE) $(LIBNAME).$(LIBTYPE)
+
+
+clean:
+	$(RM) $(LIBNAME).* $(OBJECTS) depend
+
+depend: $(SOURCES) $(HEADERS)
+	$(CC) $(CXXFLAGS) -MM $(SOURCES) > $@
+
+$(LIBNAME).a: $(OBJECTS)
+	ar rs $@ $^
+
+$(LIBNAME).so: $(OBJECTS)
+	${CC} -shared $^ -o $@
+
+
+
+%.o: %.cpp
+	$(CC) -c $(CXXFLAGS) $< -o $@
+
+include depend
