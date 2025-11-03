@@ -10,8 +10,6 @@
 #define MUSTER5  (4)
 #define MUSTER6  (5)
 
-#define TABSIZE1 (3)
-
 EXTERN inline Void TA0_init(Void);
 EXTERN Void set_blink_muster(UInt);
 

@@ -1,129 +1,109 @@
-#include <msp430.h>
-#include "..\base.h"
+/*
+ * TA0.c - Finale, bereinigte Version
+ * Autor: Herbert-Haase
+ * Datum: 2025-11-03
+ *
+ * Prinzip:
+ * - Ein einziger, globaler Teiler wird für alle Muster verwendet.
+ * - Der Teiler wird durch die längste Einzelphase im gesamten System
+ *   bestimmt (2000 ms -> Faktor 37.45 -> Teiler 40).
+ * - Die ISR ist maximal vereinfacht und enthält keine Sonderlogik.
+ * - Die Umschaltung der Muster erfolgt durch reines Ändern eines Zeigers.
+ */
+
 #include "TA0.h"
+#include "..\base.h"
+#include <msp430.h>
 
-// Zeitspanne = MAX1 (2000 ms, 500 ms) = 2500 ms
-// Teilungsfaktor = Timer-Clock * Zeitspanne = 1534375
-// Skalierungsfaktor = 1534375 / 2^15 = 46.8254 => 48 = {/8} {/6}
-// Zeitspanne = MAX2 (750 ms, 750 ms) = 1500 ms
-// Teilungsfaktor = Timer-Clock * Zeitspanne = 920625
-// Skalierungsfaktor = 920625 / 2^15 = 28,0952 => 32 = {/8} {/4}
-// Zeitspanne = MAX3 (250 ms, 250 ms) = 500 ms
-// Zeitspanne = MAX4 (500 ms, 500 ms, 1500 ms) = 2500 ms
-// Teilungsfaktor = Timer-Clock * Zeitspanne = 1534375
-// Skalierungsfaktor = 1534375 / 2^15 = 46.8254 => 48 = {/8} {/6}
-// Zeitspanne = MAX5 (500 ms, 500 ms, 500 ms, 500 ms, 1500 ms) = 3500 ms
-// Teilungsfaktor = Timer-Clock * Zeitspanne = 2148125
-// Skalierungsfaktor = 2148125 / 2^15 = 65,5555 => ? = {/?} {/?} 8*8=64 thus too small
-// Zeitspanne = MAX6 (500 ms, 500 ms, 500 ms, 500 ms, 500 ms, 500 ms, 1500 ms) = 4500 ms
-// Teilungsfaktor = Timer-Clock * Zeitspanne = 2761875
-// Skalierungsfaktor = 2761875 / 2^15 = 84,2857 => ? = {/?} {/?} 8*8=64 thus too small
+#define HIGH (0x8000)
+#define LOW (0x0000)
+#define ACLKFRQ (613750UL)
+#define GLOBAL_DIVIDER (40)
+typedef Int MusterNum
+
+// Makro, das den globalen Teiler für alle Tick-Berechnungen verwendet.
+#define TICK(ms) ((UInt)((((ACLKFRQ / 1000) * (ms)) / GLOBAL_DIVIDER) - 1))
+
+// === Definition der Musterdaten ===
+// Alle Muster verwenden denselben Teiler von 40.
+// Die längste Phase (2000ms) passt problemlos in 15 Bit: TICK(2000) = 30686 <
+// 32768
+//
+// Zeitspanne = MAX (aller Muster) = 2000 ms
 // Timer-Clock = 613.75 kHz
-#define HIGH     (0x8000)
-#define LOW      (0x0000)
+// Teilungsfaktor = Timer-Clock * Zeitspanne = 1227500
+// 16 Bit-Timer: max. Schritte 2^15
+// Skalierungsfaktor = 1227500 / 2^15 = 37.4603 => 40 = {/8} {/5}
 
-#define ACLKFRQ  (613.75e3)
-#define TICK(t)  ((UInt)((ACLKFRQ * (t)) / 28.0) - 1)
+static const Int muster1[] = {HIGH | TICK(2000), LOW | TICK(500), 0};
+static const Int muster2[] = {HIGH | TICK(750), LOW | TICK(750), 0};
+static const Int muster3[] = {HIGH | TICK(250), LOW | TICK(250), 0};
+static const Int muster4[] = {LOW | TICK(500), HIGH | TICK(500),
+                              LOW | TICK(1500), 0};
+static const Int muster5[] = {LOW | TICK(500),  HIGH | TICK(500),
+                              LOW | TICK(500),  HIGH | TICK(500),
+                              LOW | TICK(1500), 0};
+static const Int muster6[] = {
+    LOW | TICK(500), HIGH | TICK(500), LOW | TICK(500),  HIGH | TICK(500),
+    LOW | TICK(500), HIGH | TICK(500), LOW | TICK(1500), 0};
 
-typedef struct {
-    const UChar state;
-    const UChar ticks;
-} TMusterStep;
+static const Int *const all_patterns[] = {muster1, muster2, muster3,
+                                          muster4, muster5, muster6};
 
-// Basis-Tick: 250 ms. Alle Dauern sind Vielfache davon.
-#define BASIS_TICK_MS 250
+// Globale Zustandsvariablen für die ISR
+static const Int *ptr;
+static MusterNum current_muster_num = MUSTER1;
 
-const TMusterStep muster1[] = {
-    {1, 8},
-    {0, 2},
-    {0, 0}
-};
+// --- Implementierung der Funktionen ---
 
-const TMusterStep muster2[] = {
-    {1, 3},
-    {0, 3},
-    {0, 0}
-};
+GLOBAL Void set_blink_muster(MusterNum arg) {
+  _disable_interrupt();
 
-const TMusterStep muster3[] = {
-    {1, 1},
-    {0, 1},
-    {0, 0}
-};
+  if (arg <= MUSTER6) {
+    current_muster_num = arg;
+    ptr = all_patterns[current_muster_num];
+    SETBIT(TA0CTL, TAIFG);
+  }
 
-const TMusterStep muster3[] = {
-    {1, 1},
-    {0, 1},
-    {0, 0}
-};
-
-const TMusterStep muster4[] = {
-    {0, 2},
-    {1, 2},
-    {0, 6},
-    {0, 0}
-};
-
-const TMusterStep muster4[] = {
-    {0, 2},
-    {1, 2},
-    {0, 6},
-    {0, 0}
-};
-
-const TMusterStep muster5[] = {
-    {0, 2},
-    {1, 2},
-    {0, 2},
-    {1, 2},
-    {0, 6},
-    {0, 0}
-};
-
-const TMusterStep muster6[] = {
-    {1, 2}, {0, 2},
-    {1, 2}, {0, 2},
-    {1, 2}, {0, 2},
-    {1, 6},
-    {0, 0}
-};
-
-
-
-LOCAL const Int *ptr;
-/*
- * Man soll sich eine geeignete Datenstruktur überlegen,
- * die eine laufzeiteffiziente Ausführung der ISR ermöglicht.
- */
-
-GLOBAL Void set_blink_muster(UInt arg) {
-/*
- * Die Funktion muss so erweitert werden,
- * dass ein Blinkmuster selektiert wird.
- * Diese Lösung hängt stark von der gewählten
- * Datenstruktur ab.
- */
+  _enable_interrupt();
 }
 
 #pragma FUNC_ALWAYS_INLINE(TA0_init)
 GLOBAL Void TA0_init(Void) {
-   TA0CTL   = 0; // stop mode, disable and clear flags
-   TA0CCTL0 = 0; // no capture mode, compare mode
-                 // clear and disable interrupt flag
-   TA0CCR0  = 0xFFFF;       // set up Compare Register
-   TA0EX0   = TAIDEX_0;     // set up expansion register
-   TA0CTL   = TASSEL__ACLK  // 613.75 kHz
-            | MC__UP        // Up Mode
-            | ID__1         // input divider
-            | TACLR         // clear and start Timer
-            | TAIE          // enable interrupt
-            | TAIFG;        // set interrupt flag
+  TA0CTL = 0; // Timer stoppen für die Konfiguration
+  TA0CCTL0 = 0;
+
+  // Setze den globalen Teiler EINMALIG.
+  TA0EX0 = TAIDEX_4;    // Expansion Divider /5
+  TA0CTL = TASSEL__ACLK // Taktquelle
+           | MC__UP     // Up Mode
+           | ID__8      // Input Divider /8
+           | TACLR      // Timer löschen
+           | TAIE;      // Interrupts global aktivieren
+
+  // Starte mit dem ersten Muster als Standard.
+  set_blink_muster(MUSTER1);
 }
 
 #pragma vector = TIMER0_A1_VECTOR
 __interrupt Void TIMER0_A1_ISR(Void) {
+  // Wenn das Muster-Ende (0) erreicht ist, starte das aktuelle Muster neu.
+  if (*ptr == 0) {
+    ptr = all_patterns[current_muster_num];
+  }
 
-   /*
-    * Der Inhalt der ISR ist zu implementieren
-    */
+  // Lade den aktuellen Schritt aus dem Muster-Array.
+  UInt cnt = *ptr++;
+
+  // Setze den LED-Zustand basierend auf dem HIGH-Bit.
+  if (TSTBIT(cnt, HIGH)) {
+    SETBIT(P2OUT, BIT7);
+    CLRBIT(cnt, HIGH);
+  } else {
+    CLRBIT(P2OUT, BIT7);
+  }
+
+  // Lade den Timer mit dem neuen Wert und lösche das Interrupt-Flag.
+  TA0CCR0 = cnt;
+  CLRBIT(TA0CTL, TAIFG);
 }
