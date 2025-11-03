@@ -19,7 +19,7 @@ TOL = 1.0e-08;
 x=MyNewton(f,df,x0,TOL,1);
 
 % Ausgabe des Ergebnisses
-% fprintf("Die Nullstelle lautet: %.2f mit Residuum: %.2e\n",...,...);
+fprintf("Die Nullstelle lautet: %.2f mit Residuum: %.2e\n",x,abs(f(x)));
 
 % Wenn gewünscht eine Graphik des Ergebnisses samt Kurve
 
