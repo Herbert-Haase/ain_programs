@@ -1,0 +1,22 @@
+#
+# Makefile
+#
+# Autor: H.Drachenfels
+# erstellt am: 18.01.2013
+#
+
+CXX = g++
+CXXFLAGS = -g -W -Wall -ansi -pedantic
+
+TARGET = htwg_vector_test
+
+all: $(TARGET)
+
+clean:
+	rm -f $(TARGET) $(TARGET).o
+
+$(TARGET): $(TARGET).o
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+htwg_vector_test.o: htwg_vector_test.cpp htwg_vector.h
+
