@@ -1,0 +1,19 @@
+# Makefile
+
+CFLAGS = -ansi -pedantic -W -Wall
+
+TARGET = datetest
+
+OBJECTS = date.o
+
+all: $(TARGET)
+
+clean:
+	$(RM) $(TARGET) $(TARGET).o $(OBJECTS)
+
+$(TARGET): $(TARGET).o $(OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+datetest.o: datetest.c date.h
+date.o: date.c date.h
+

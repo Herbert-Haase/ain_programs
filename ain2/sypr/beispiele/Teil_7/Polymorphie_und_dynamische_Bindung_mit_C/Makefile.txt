@@ -1,0 +1,20 @@
+# Makefile
+
+CFLAGS = -ansi -pedantic -W -Wall
+
+TARGET = iteratortest
+
+OBJECTS = iterator_impl.o array_iterator.o 
+
+all: $(TARGET)
+
+clean:
+	$(RM) $(TARGET) $(TARGET).o $(OBJECTS)
+
+$(TARGET): $(TARGET).o $(OBJECTS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+iteratortest.o: iteratortest.c array_iterator.h iterator.h
+iterator_impl.o: iterator_impl.c iterator_impl.h iterator.h
+array_iterator.o: array_iterator.c array_iterator.h iterator.h iterator_impl.h
+

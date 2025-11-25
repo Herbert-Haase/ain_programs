@@ -1,0 +1,24 @@
+#
+# Makefile
+#
+# Autor: H.Drachenfels
+# erstellt am: 18.01.2013
+#
+
+CXX = g++
+CXXFLAGS = -g -W -Wall -ansi -pedantic
+
+TARGET = htwg_string_test
+OBJECTS = htwg_string.o
+
+all: $(TARGET)
+
+clean:
+	rm -f $(TARGET) $(TARGET).o $(OBJECTS)
+
+$(TARGET): $(TARGET).o $(OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+htwg_string_test.o: htwg_string_test.cpp htwg_string.h
+htwg_string.o: htwg_string.cpp htwg_string.h
+
