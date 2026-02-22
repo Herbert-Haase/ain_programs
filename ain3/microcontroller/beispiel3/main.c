@@ -76,6 +76,7 @@ GLOBAL Void main(Void) {
    SETBIT(P1OUT,  BIT2); // set led 2
 
    while(TRUE) {
-      _low_power_mode_3 (); // do nothing
+      _low_power_mode_3(); // do nothing
    }
 }
+
