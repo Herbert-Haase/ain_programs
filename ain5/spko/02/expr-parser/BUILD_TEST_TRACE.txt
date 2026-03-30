@@ -1,0 +1,21 @@
+$ ant
+Buildfile: build.xml
+
+parser-generate:
+     [echo] java -jar antlr-4.13.1-complete.jar -package expr.grammar expr\grammar\ExprLexer.g4
+     [echo] java -jar antlr-4.13.1-complete.jar -package expr.grammar expr\grammar\ExprParser.g4
+
+parser-compile:
+    [javac] Compiling 4 source files to .
+    [javac] expr\grammar\ExprLexer.java
+    [javac] expr\grammar\ExprParser.java
+    [javac] expr\grammar\ExprParserBaseListener.java
+    [javac] expr\grammar\ExprParserListener.java
+
+parser-jar:
+      [jar] Building jar: Expr.jar
+
+
+$ ./grun.sh expr-examples/beispiel-folie.txt
+java -cp Expr.jar org.antlr.v4.gui.TestRig expr.grammar.Expr start -gui expr-examples/beispiel-folie.txt
+sed -f pt-svg.sed antlr4_parse_tree.svg > beispiel-folie-pt.svg 
