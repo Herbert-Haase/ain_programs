@@ -19,6 +19,7 @@ Die Entscheidung fiel auf diesen Text, da die Struktur der Öffnungszeiten intui
 
 Der Einstieg erfolgte durch das Ausführen des bereitgestellten Beispiels (ant & ./lrun.sh expr-examples/beispiel-gueltige.txt). Anschließend wurde die Datei ExprTokenizer.java analysiert.
 Anfänglich war das Konzept der "hidden channels" im Tokenizer unklar. Nach dem Abgleich mit der Datei ExprLexer.g4 wurde jedoch ersichtlich, dass dieser Kanal genutzt wird, um irrelevante Zeichen wie Leerzeichen, Tabs und Zeilenumbrüche (WS: [ \t\r\n]+ -> channel(HIDDEN);) beim Parsen auszublenden, ohne sie komplett zu löschen.
+Zur Verifizierung und Entwicklung der benötigten regulären Ausdrücke kam das Tool regex101.com zum Einsatz.
 
 Die Erstellung der eigenen ExprLexer.g4 Datei begann mit einer Kopie des Basis-Beispiels, welche schrittweise um eigene Einträge erweitert wurde.
 Dabei wurden einfache, allgemeine Beispiel-Einträge (wie Digits: ([0-9])+;) aufgrund von Redundanz entfernt und durch präzisere Regeln ersetzt, die genau auf den Text zugeschnitten sind (z. B. TIME: ([0-1]?[0-9] | '2'[0-3]) '.' [0-5][0-9];)
