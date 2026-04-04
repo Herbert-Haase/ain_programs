@@ -1,1 +1,0 @@
-s/fill:orange; stroke:rgb(0,0,0);/fill:white; stroke:white;/
