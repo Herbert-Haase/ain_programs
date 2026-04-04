@@ -1,8 +1,9 @@
 /** XML lexer derived from ANTLR v4 ref guide book example */
-lexer grammar XMLLexer;
+lexer grammar VHDLLexer;
 
 // Default "mode": Everything OUTSIDE of a tag
-COMMENT     :   '<!--' .*? '-->' ;
+
+COMMENT     :   '--.*?\n' ;
 CDATA       :   '<![CDATA[' .*? ']]>' ;
 /** Scarf all DTD stuff, Entity Declarations like <!ENTITY ...>,
  *  and Notation Declarations <!NOTATION ...>
