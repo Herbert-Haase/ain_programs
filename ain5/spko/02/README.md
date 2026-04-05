@@ -20,7 +20,7 @@ Ableitungsbaum:
 
 Protokoll:
 
-Für die Aufgabe 2 habe ich mir eine Untermenge der VHDL Sprache ausgesucht. Ziel war es dass dieses [Beispiel Program](https://github.com/Herbert-Haase/ain_programs/blob/main/ain5/spko/02/beispiel_vhdl.vhd) und ähnliche Code Snippets geparsed werden können.
+Für die Aufgabe 2 habe ich mir eine Untermenge der VHDL Sprache ausgesucht. Ziel war es, dass dieses [Beispiel Program](https://github.com/Herbert-Haase/ain_programs/blob/main/ain5/spko/02/beispiel_vhdl.vhd) und ähnliche Code Snippets geparsed werden können.
 
 ## Vorbereitung und Lexer-Implementierung
 Zunächst wurde ein bestehendes XML-Beispiel erfolgreich ausgeführt und als Basisstruktur für das eigene VHDL-Projekt adaptiert. Viele Token-Definitionen im Lexer waren intuitiv verständlich, andere wiederum erforderten eine tiefere Auseinandersetzung mit der ANTLR4-Mechanik. Ein Beispiel hierfür ist
