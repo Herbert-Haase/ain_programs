@@ -65,7 +65,14 @@ Die Definition sämtlicher Nicht-Identifier-Zeichen und Operatoren stellte sich 
 ## Parser und Regelstruktur
 Beim Entwurf des Parsers bestand der erste Schritt in der groben Strukturierung der Grammatik. Aufgrund des überschaubaren Sprachumfangs ergab sich folgende Basisstruktur als Einstiegspunkt:
 ```
-Entrypoint -> (USE | LIBS)* (ENTITY | ARCHITECTURE)+ EOF
+start : startRule EOF;
+startRule: libs* units+;
+
+libs : lib_declaration | use_declaration;
+lib_declaration : LIBRARY ID SEMI;
+use_declaration : USE (ID DOT)+(ID | ALL) SEMI;
+
+units : entity_unit | arch_unit;
 ```
 
 Anschließend wurden diese Hauptkomponenten systematisch in ihre jeweiligen Unterregeln (Bausteine) zerlegt. Die interessanteste und komplexeste Regel war dabei das statement, welches in Zuweisungen (assignment) und Ausdrücke (expression) untergliedert wurde.
