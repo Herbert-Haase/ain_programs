@@ -2,7 +2,9 @@ parser grammar VHDLParser;
 
 options { tokenVocab=VHDLLexer; }
 
-startRule : libs* units+ EOF;
+start : startRule EOF;
+
+startRule: libs* units+;
 
 libs : lib_declaration | use_declaration;
 
