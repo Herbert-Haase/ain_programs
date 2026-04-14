@@ -1,0 +1,48 @@
+$ ant
+Buildfile: build.xml
+
+parser-generate:
+     [echo] java -jar antlr-4.13.1-complete.jar -package expr.grammar expr\grammar\ExprLexer.g4
+     [echo] java -jar antlr-4.13.1-complete.jar -package expr.grammar expr\grammar\ExprParser.g4
+
+parser-compile:
+    [javac] expr\grammar\ExprLexer.java
+    [javac] expr\grammar\ExprParser.java
+    [javac] expr\grammar\ExprParserBaseListener.java
+    [javac] expr\grammar\ExprParserListener.java
+
+parser-jar:
+      [jar] Building jar: Expr.jar
+
+ast-compile:
+    [javac] expr\ExprToPlantuml.java
+    [javac] expr\ast\Expr.java
+    [javac] expr\ast\ExprBuilder.java
+    [javac] expr\ast\ExprPlotter.java
+    [javac] expr\ast\ExprPrinter.java
+    [javac] expr\ast\ExprVisitor.java
+    [javac] expr\ast\Operation.java
+    [javac] expr\ast\Value.java
+
+ast-jar:
+      [jar] Building jar: ExprAst.jar
+
+BUILD SUCCESSFUL
+Total time: 7 seconds
+
+
+$ ./arun.sh expr-examples/beispiel-folie.txt
+java -cp ExprAst.jar expr.ExprToPlantuml < expr-examples/beispiel-folie.txt
+@startmindmap
+top to bottom direction
+<style>
+node {
+    LineColor white
+    BackgroundColor white
+}
+</style>
+* +
+** 1.2
+** 34.5
+@endmindmap
+java -cp ExprAst.jar expr.ExprToPlantuml < expr-examples/beispiel-folie.txt | java -jar plantuml-1.2025.2.jar -pipe -tsvg > beispiel-folie-ast.svg
