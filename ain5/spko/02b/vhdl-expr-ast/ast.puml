@@ -1,0 +1,14 @@
+@startmindmap
+top to bottom direction
+<style>
+node {
+    LineColor white
+    BackgroundColor white
+}
+</style>
+* <=
+** p1
+** AND
+*** i0
+*** i1
+@endmindmap

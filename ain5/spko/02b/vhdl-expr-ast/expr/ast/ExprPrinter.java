@@ -1,4 +1,4 @@
-package vhdl.ast;
+package expr.ast;
 
 public final class ExprPrinter implements ExprVisitor {
     private StringBuilder result;

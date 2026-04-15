@@ -1,4 +1,4 @@
-package vhdl.ast;
+package expr.ast;
 
 public interface ExprVisitor {
     default void visitOperation(Operation operation) {

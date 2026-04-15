@@ -2,7 +2,7 @@
 <project default="ast-jar">
 
     <property name="antlr" value="antlr-4.13.1-complete.jar" />
-    <property name="grammar" value="Expr" />
+    <property name="grammar" value="VHDL" />
     <property name="parser-package" value="expr.grammar" />
     <property name="parser-dir" value="expr/grammar/" />
     <property name="ast-dir" value="expr/ast/" />
@@ -62,12 +62,12 @@
     </target>
 
     <target name="ast-jar" depends="ast-compile">
-        <jar destfile="${grammar}Ast.jar">
-            <fileset dir="." includes="expr/ExprToPlantuml.class"/>
-            <fileset dir="." includes="${ast-dir}*.class"/>
-            <zipfileset includes="**/*.class" src="${grammar}.jar"/>
-        </jar>
-    </target>
+    <jar destfile="${grammar}Ast.jar">
+        <fileset dir="." includes="expr/ExprToPlantuml.class"/>
+        <fileset dir="." includes="${ast-dir}*.class"/>
+        <zipfileset includes="**/*.class" src="${grammar}.jar"/>
+    </jar>
+</target>
 
     <target name="ast-compile" depends="parser-jar">
         <javac debug="on" srcdir="." destdir="." sourcepath=""

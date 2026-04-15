@@ -1,4 +1,4 @@
-package vhdl.ast;
+package expr.ast;
 
 public final class Assignment extends Expr {
     public final String target;

@@ -1,4 +1,4 @@
-package vhdl.ast;
+package expr.ast;
 
 public final class Id extends Expr {
     public final String name;

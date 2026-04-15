@@ -1,4 +1,4 @@
-// ExprPlotter
+// expr/ast/ExprPlotter.java
 package expr.ast;
 
 public final class ExprPlotter implements ExprVisitor {
@@ -24,10 +24,10 @@ public final class ExprPlotter implements ExprVisitor {
     }
 
     @Override
-    public void visitValue(Value value) {
+    public void visitId(Id id) {
         this.result.append("*".repeat(this.nesting + 1))
                    .append(' ')
-                   .append(value)
+                   .append(id.name)
                    .append('\n');
     }
 
@@ -36,11 +36,39 @@ public final class ExprPlotter implements ExprVisitor {
         ++this.nesting;
         this.result.append("*".repeat(this.nesting))
                    .append(' ')
-                   .append(operation)
+                   .append(operation.operator)
                    .append('\n');
         operation.left.accept(this);
         operation.right.accept(this);
         --this.nesting;
     }
-}
 
+    @Override
+    public void visitNot(Not not) {
+        ++this.nesting;
+        this.result.append("*".repeat(this.nesting))
+                   .append(" NOT\n");
+        not.child.accept(this);
+        --this.nesting;
+    }
+
+    @Override
+    public void visitAssignment(Assignment assignment) {
+        ++this.nesting;
+        this.result.append("*".repeat(this.nesting))
+                   .append(" <=\n");
+        
+        // Linke Seite (Target ID)
+        ++this.nesting;
+        this.result.append("*".repeat(this.nesting))
+                   .append(' ')
+                   .append(assignment.target)
+                   .append('\n');
+        --this.nesting;
+        
+        // Rechte Seite (Expression)
+        assignment.value.accept(this);
+        
+        --this.nesting;
+    }
+}

@@ -1,4 +1,4 @@
-package vhdl.ast;
+package expr.ast;
 
 public final class Not extends Expr {
     public final Expr child;
