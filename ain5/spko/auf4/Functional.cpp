@@ -13,10 +13,17 @@
 constexpr int MIN_LENGTH = 20;
 
 struct Line {
-  std::string str;
-  operator std::string() const { return str; }
+  std::string_view view;
+
+  operator std::string_view() const { return view; }
+
   friend std::istream &operator>>(std::istream &is, Line &line) {
-    return std::getline(is, line.str);
+    thread_local std::string buffer;
+
+    if (std::getline(is, buffer)) {
+      line.view = buffer;
+    }
+    return is;
   }
 };
 
@@ -36,19 +43,14 @@ int main(int argc, char *argv[]) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  auto lazy_file_stream =
-     std::views::istream<Line>(input) |
-     std::views::transform([](const Line &l) { return l.str; });
-
   auto pipeline =
-      lazy_file_stream | std::views::filter([](const std::string &line) {
-        return (!line.empty() &&
-                line.find_first_not_of(" \t\r\n") != std::string::npos);
+      std::views::istream<Line>(input) | std::views::filter([](const Line &l) {
+        return (!l.view.empty() &&
+                l.view.find_first_not_of(" \t\r\n") != std::string::npos);
       }) |
       std::views::filter(
-          [](const std::string &line) { return (line.size() >= MIN_LENGTH); }) |
-      std::views::transform(
-          [](const std::string &line) { return line.size(); });
+          [](const Line &l) { return (l.view.size() >= MIN_LENGTH); }) |
+      std::views::transform([](const Line &l) { return l.view.size(); });
 
   int n = std::ranges::fold_left(pipeline, 0, std::plus<>{});
 
@@ -63,7 +65,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-
 // TODO: Implementieren Sie die Funktionen readLines, removeEmptyLines,
 // removeShortLines, totalLineLengths Nutzen Sie hierzu Schleifen und
 // Verzweigungen (imperativer/prozeduraler Stil).
+
+

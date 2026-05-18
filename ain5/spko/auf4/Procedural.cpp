@@ -79,3 +79,4 @@ int main(int argc, char *argv[]) {
 // TODO: Implementieren Sie die Funktionen readLines, removeEmptyLines,
 // removeShortLines, totalLineLengths Nutzen Sie hierzu Schleifen und
 // Verzweigungen (imperativer/prozeduraler Stil).
+
