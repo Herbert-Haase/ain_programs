@@ -1,10 +1,13 @@
 ### Protokoll spko:
 
 ##### 5a)
+>Lösen Sie die Aufgaben von Folie 25 (rechte Spalte der Tabelle)
+<p align="center">
+  <img src="./Screenshot_2026-05-24_19-26-25.png" width="800">
 
+>26 (Berechnung Fakultät)
 von [Wikipedia](https://en.wikipedia.org/wiki/Logic_programming) inspirieren lassen:
-```Prolog
-fibonacci(0, 0).
+```Prolog fibonacci(0, 0).
 fibonacci(1, 1).
 
 fibonacci(N, Result) :-
@@ -41,7 +44,7 @@ fak_acc(N, Acc, Result) :-
 fak(3,R) R=6
 
 
-##### Was berechnen folgende Anfragen? 
+>Was berechnen folgende Anfragen? 
 ?– append(X, Y, [1,2,3,4]).
 ?- append(X, [1,2,3,4], Y).
 Basisfall append([],L,L)
