@@ -235,54 +235,60 @@ list_all_cmds()
 while (True):
     try:
         data = input("$ ")
-        cmd = data.split("|")
-        match cmd[0]:
+        if "|" in data:
+            cmd, payload = data.split("|", 1)
+        else:
+            cmd, payload = data, ""
+
+        match cmd:
             case "REGISTER":
-                if len(cmd) == 4:
+                payload = payload.split("|")
+                if len(payload) == 3:
                     if srvCom:
                         srvCom.disconnect()
-                    srvCom = ServerCommunication(nickname=cmd[1], ip=cmd[2], udp_port=int(cmd[3]))
+                    srvCom = ServerCommunication(nickname=payload[0], ip=payload[1], udp_port=int(payload[2]))
                     srvCom.connect_and_register(SERVER_IP, SERVER_PORT)
                 else:
                     raise Exception("INVALID_FORMAT")
 
             case "LOGOUT":
-                if len(cmd) == 1:
+                if not payload:
                     if srvCom:
                         srvCom.disconnect()
                         srvCom = None
                 else:
                     raise Exception("INVALID_FORMAT")
             case "BROADCAST":
-                if len(cmd) == 2:
+                if payload:
                     if srvCom:
-                        srvCom.send_global_message(cmd[1])
+                        srvCom.send_global_message(payload)
                 else:
                     raise Exception("INVALID_FORMAT")
             case "HELP":
-                if len(cmd) == 1:
+                if not payload:
                     list_all_cmds()
                 else:
                     raise Exception("INVALID_FORMAT")
             case "EXIT":
-                if len(cmd) == 1:
+                if not payload:
                     exit(0)
                 else:
                     raise Exception("INVALID_FORMAT")
             case "USERLIST":
-                if len(cmd) == 1:
+                if not payload:
                     if srvCom:
                         srvCom.print_USERLIST()
                 else:
                     raise Exception("INVALID_FORMAT")
             case "HANDSHAKE":
-                if len(cmd) == 3:
+                payload = payload.split("|")
+                if len(payload) == 2:
                     if srvCom:
                         pass
                 else:
                     raise Exception("INVALID_FORMAT")
             case "MSG":
-                if len(cmd) == 2:
+                if payload:
                     if srvCom:
                         pass
                 else:
