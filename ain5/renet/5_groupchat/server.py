@@ -2,6 +2,7 @@ import time
 import threading
 import socket
 from typing import Any
+import re
 
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = 50000
@@ -165,13 +166,20 @@ def send_userlist_change(action: str, name: str, user: dict[str, Any]) -> None:
 
 def register(nickname: str, ip: str, udp_port: str, sock: socket.socket) -> None:
     user = {}
+    ip_regex = r'^(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})$'
     try:
         with lock_USERLIST:
             if nickname in USERLIST:
                 raise Exception("NAME_ALREADY_USED")
-            if int(udp_port) < 0 or int(udp_port) > 65535:
+            try:
+                udp = int(udp_port)
+            except ValueError:
                 raise Exception("INVALID_PORT")
-            user = {"ip": ip, "udp_port": udp_port, "tcp_socket": sock}
+            if udp < 0 or udp > 65535:
+                raise Exception("INVALID_PORT")
+            if re.fullmatch(ip_regex, ip) is None:
+                raise Exception("INVALID_FORMAT")
+            user = {"ip": ip, "udp_port": udp, "tcp_socket": sock}
             USERLIST[nickname] = user
         send_whole_userlist(nickname)
         send_userlist_change("ADD", nickname, user)

@@ -2,6 +2,7 @@ import time
 import threading
 import socket
 from typing import Any
+import re
 
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = 50000
@@ -51,7 +52,7 @@ class ServerCommunication:
                 t = threading.Thread(target=self.listen_to_server, daemon=True)
                 t.start()
             else:
-                print(f"Verbindung zum Server fehlgeschlagen (Ports {server_port} bis {current_port-1} getestet).\n$ ", end="")
+                print(f"Verbindung zum Server fehlgeschlagen (Ports {server_port} bis {current_port - 1} getestet).\n$ ", end="")
                 srvCom = None
 
         except socket.timeout:
@@ -243,11 +244,21 @@ while (True):
         match cmd:
             case "REGISTER":
                 payload = payload.split("|")
+                ip_regex = r'^(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})$'
                 if len(payload) == 3:
                     if srvCom:
                         srvCom.disconnect()
-                    srvCom = ServerCommunication(nickname=payload[0], ip=payload[1], udp_port=int(payload[2]))
-                    srvCom.connect_and_register(SERVER_IP, SERVER_PORT)
+                    try:
+                        udp_port = int(payload[2])
+                    except ValueError:
+                        raise Exception("INVALID_PORT")
+                    if (0 > udp_port or udp_port > 65535):
+                        raise Exception("INVALID_PORT")
+                    if re.fullmatch(ip_regex, payload[1]):
+                        srvCom = ServerCommunication(nickname=payload[0], ip=payload[1], udp_port=udp_port)
+                        srvCom.connect_and_register(SERVER_IP, SERVER_PORT)
+                    else:
+                        raise Exception("INVALID_IP")
                 else:
                     raise Exception("INVALID_FORMAT")
 
@@ -304,6 +315,8 @@ while (True):
     except Exception as e:
         match str(e):
             case "INVALID_FORMAT": print("INVALID_FORMAT")
+            case "INVALID_PORT": print("INVALID_PORT")
+            case "INVALID_IP": print("INVALID_IP")
 
     except KeyboardInterrupt:
         print("Server wird manuell beendet...")
