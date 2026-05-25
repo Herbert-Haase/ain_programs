@@ -215,20 +215,20 @@ class ServerCommunication:
 
 def list_all_cmds():
     print("Server Commands:")
-    print("=================")
     print("REGISTER|Nickname|IP-Adresse|UDP-Port")
     print("LOGOUT")
     print("BROADCAST|Nachricht")
     print("=================")
     print("Peer Commands:")
-    print("=================")
     print("HANDSHAKE|Nickname|TCP-Port")
     print("MSG|Nachricht")
     print("=================")
     print("misc commands:")
-    print("EXIT")
-    print("HELP")
-    print("USERLIST")
+    print("EXIT (Exits the application, duh)")
+    print("HELP (Prints this list of commands)")
+    print("USERLIST (Prints all logged in users)")
+    print("USER (Prints your current userinfo in case you forgot)")
+    print("=================")
 
 
 list_all_cmds()
@@ -272,6 +272,12 @@ while (True):
             case "EXIT":
                 if not payload:
                     exit(0)
+                else:
+                    raise Exception("INVALID_FORMAT")
+            case "USER":
+                if not payload:
+                    if srvCom:
+                        print(srvCom)
                 else:
                     raise Exception("INVALID_FORMAT")
             case "USERLIST":
