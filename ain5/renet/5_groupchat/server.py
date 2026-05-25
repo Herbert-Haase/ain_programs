@@ -5,7 +5,7 @@ from typing import Any
 
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = 50000
-server_activity_period = 30
+server_activity_period = 10
 USERLIST = {}
 lock_USERLIST = threading.Lock()
 
@@ -16,20 +16,25 @@ def listen(sock: socket.socket) -> None:
     print('Listening on Port ', SERVER_PORT, ' for incoming TCP connections')
     sock.listen(1)
 
-    while time.time() < t_end:
+    # while time.time() < t_end:
+    while True:
         try:
             client_socket, addr = sock.accept()
-            t = threading.Thread(target=receive, args=(client_socket, addr))
+            t = threading.Thread(target=receive, daemon=True, args=(client_socket, addr))
             t.start()
         except socket.timeout:
             print(f"Timeout after {time.asctime()}")
+        except KeyboardInterrupt:
+            print("Server wird manuell beendet...")
+            exit(0)
 
     sock.close()
 
 
 def receive(sock: socket.socket, addr: tuple[str, int]) -> None:
     puffer = ""
-    while time.time() < t_end:
+    # while time.time() < t_end:
+    while True:
         try:
             data = sock.recv(1024).decode('utf-8')
             if not data:
@@ -68,26 +73,46 @@ def receive(sock: socket.socket, addr: tuple[str, int]) -> None:
 
 def packet_code(data: str, sock: socket.socket, addr: tuple[str, int]) -> None:
     try:
-        data = data.split("|")
-        match data[0]:
+        if "|" in data:
+            cmd, payload = data.split("|", 1)
+        else:
+            cmd, payload = data, ""
+
+        match cmd:
             case "REGISTER":
-                if len(data) != 4:
+                print("REGISTER")
+                if not payload:
                     raise Exception("INVALID_FORMAT")
+                args = payload.split("|")
+                if len(args) != 3:
+                    raise Exception("INVALID_FORMAT")
+                register(args[0], args[1], args[2], sock)
 
-                register(data[1], data[2], data[3], sock)
             case "LOGOUT":
+                print("LOGOUT")
                 logout(sock)
-            case "BROADCAST":
-                if len(data) != 2:
-                    raise Exception("INVALID_FORMAT")
 
-                broadcast(data[1], sock)
+            case "BROADCAST":
+                if not payload:
+                    raise Exception("INVALID_FORMAT")
+                print("BROADCAST")
+                broadcast(payload, sock)
+
+            case "SUCCESS":
+                print("UPDATE_SUCCESS")
+                pass
+
             case _:
                 raise Exception("INVALID_FORMAT")
+
     except Exception as e:
         match str(e):
-            case "INVALID_FORMAT": send_back_error("ERROR|INVALID_FORMAT\0", sock)
-            case "INVALID_PORT": send_back_error("ERROR|INVALID_PORT\0", sock)
+            case "INVALID_FORMAT":
+                print("INVALID_FORMAT")
+                send_back_error("ERROR|INVALID_FORMAT\0", sock)
+            case "INVALID_PORT":
+                print("INVALID_PORT")
+                send_back_error("ERROR|INVALID_PORT\0", sock)
 
 
 def send_whole_userlist(nickname: str) -> None:
