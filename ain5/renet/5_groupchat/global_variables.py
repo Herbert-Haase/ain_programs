@@ -1,7 +1,7 @@
 import threading
 import re
 
-SERVER_IP = '127.0.0.1'
+SERVER_IP = '192.168.2.227'
 SERVER_PORT = 50000
 server_activity_period = 30
 USERLIST = {}  # {name:{ip:ip,udp_port:port}}

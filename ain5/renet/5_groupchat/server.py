@@ -3,20 +3,16 @@ import threading
 import socket
 from typing import Any
 import re
-
+import global_variables as g
 
 def main():
 
-    SERVER_IP = '127.0.0.1'
-    SERVER_PORT = 50000
-    server_activity_period = 10
-    USERLIST = {}
-    lock_USERLIST = threading.Lock()
+    PORT = g.SERVER_PORT
 
-    t_end = time.time() + server_activity_period  # Ende der Aktivitätsperiode
+    # t_end = time.time() + g.server_activity_period  # Ende der Aktivitätsperiode
 
     def listen(sock: socket.socket) -> None:
-        print('Listening on Port ', SERVER_PORT, ' for incoming TCP connections')
+        print('Listening on Port ', PORT, ' for incoming TCP connections')
         sock.listen(1)
 
         # while time.time() < t_end:
@@ -61,13 +57,13 @@ def main():
 
         name_to_remove = None
         user_to_remove = None
-        with lock_USERLIST:
-            for nick, user in USERLIST.items():
+        with g.lock_USERLIST:
+            for nick, user in g.USERLIST.items():
                 if user["tcp_socket"] == sock:
                     name_to_remove = nick
                     break
             if name_to_remove:
-                user_to_remove = USERLIST.pop(name_to_remove, None)
+                user_to_remove = g.USERLIST.pop(name_to_remove, None)
 
         if name_to_remove and user_to_remove:
             send_userlist_change("REMOVE", name_to_remove, user_to_remove)
@@ -116,17 +112,17 @@ def main():
                 case _: print(f"Python-Fehler: {repr(e)}")
 
     def send_whole_userlist(nickname: str) -> None:
-        with lock_USERLIST:
-            eintraege = [f"{nick},{info['ip']},{info['udp_port']}" for nick, info in USERLIST.items()]
+        with g.lock_USERLIST:
+            eintraege = [f"{nick},{info['ip']},{info['udp_port']}" for nick, info in g.USERLIST.items()]
             update = "USERLIST|" + ";".join(eintraege) + "\0"
-            sock = USERLIST[nickname]["tcp_socket"]
+            sock = g.USERLIST[nickname]["tcp_socket"]
         try:
             sock.send(update.encode())
         except socket.error:
             user = {}
             sock.close()
-            with lock_USERLIST:
-                user = USERLIST.pop(nickname, None)
+            with g.lock_USERLIST:
+                user = g.USERLIST.pop(nickname, None)
             if user is None:
                 return
             send_userlist_change("REMOVE", nickname, user)
@@ -140,8 +136,8 @@ def main():
         update = f"UPDATE|{action}|{name}|{user['ip']}|{user['udp_port']}\0"
 
         active_sockets = []
-        with lock_USERLIST:
-            for nick, active_user in USERLIST.items():
+        with g.lock_USERLIST:
+            for nick, active_user in g.USERLIST.items():
                 if nick != name and active_user["tcp_socket"]:
                     active_sockets.append((nick, active_user["tcp_socket"]))
 
@@ -152,11 +148,11 @@ def main():
                 dead_clients.append(nick)
 
         if dead_clients:
-            with lock_USERLIST:
+            with g.lock_USERLIST:
                 for nick in dead_clients:
-                    if nick in USERLIST:
-                        USERLIST[nick]["tcp_socket"].close()
-                        dead_users.append(USERLIST.pop(nick, None))
+                    if nick in g.USERLIST:
+                        g.USERLIST[nick]["tcp_socket"].close()
+                        dead_users.append(g.USERLIST.pop(nick, None))
 
             for nick, d_user in zip(dead_clients, dead_users):
                 send_userlist_change("REMOVE", nick, d_user)
@@ -165,8 +161,8 @@ def main():
         user = {}
         ip_regex = r'^(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})$'
         try:
-            with lock_USERLIST:
-                if nickname in USERLIST:
+            with g.lock_USERLIST:
+                if nickname in g.USERLIST:
                     raise Exception("NAME_ALREADY_USED")
                 try:
                     udp = int(udp_port)
@@ -177,7 +173,7 @@ def main():
                 if re.fullmatch(ip_regex, ip) is None:
                     raise Exception("INVALID_FORMAT")
                 user = {"ip": ip, "udp_port": udp, "tcp_socket": sock}
-                USERLIST[nickname] = user
+                g.USERLIST[nickname] = user
             send_whole_userlist(nickname)
             send_userlist_change("ADD", nickname, user)
         except Exception as e:
@@ -190,13 +186,13 @@ def main():
         name = ""
         loggedout_user = {}
         try:
-            with lock_USERLIST:
-                for nick, user in USERLIST.items():
+            with g.lock_USERLIST:
+                for nick, user in g.USERLIST.items():
                     if user["tcp_socket"] == sock:
                         name = nick
                 if not name:
                     raise Exception("LOGOUT_FAILED")
-                loggedout_user = USERLIST.pop(name, None)
+                loggedout_user = g.USERLIST.pop(name, None)
                 if not loggedout_user:
                     raise Exception("LOGOUT_FAILED")
                 try:
@@ -215,15 +211,15 @@ def main():
         nickname = None
         targets = []
 
-        with lock_USERLIST:
-            for nick, user in USERLIST.items():
+        with g.lock_USERLIST:
+            for nick, user in g.USERLIST.items():
                 if user["tcp_socket"] == sock:
                     nickname = nick
             if not nickname:
                 send_back_error("ERROR|INVALID_BROADCAST_FORMAT\0", sock)
                 return
 
-            for nick, user in USERLIST.items():
+            for nick, user in g.USERLIST.items():
                 if nick != nickname:
                     targets.append((nick, user["tcp_socket"]))
 
@@ -236,11 +232,11 @@ def main():
 
         if dead_clients:
             dead_users = []
-            with lock_USERLIST:
+            with g.lock_USERLIST:
                 for nick in dead_clients:
-                    if nick in USERLIST:
-                        USERLIST[nick]["tcp_socket"].close()
-                        dead_users.append(USERLIST.pop(nick, None))
+                    if nick in g.USERLIST:
+                        g.USERLIST[nick]["tcp_socket"].close()
+                        dead_users.append(g.USERLIST.pop(nick, None))
             for nick, user in zip(dead_clients, dead_users):
                 send_userlist_change("REMOVE", nick, user)
 
@@ -252,13 +248,13 @@ def main():
             name_to_remove = None
             user_to_remove = None
 
-            with lock_USERLIST:
-                for nick, user in USERLIST.items():
+            with g.lock_USERLIST:
+                for nick, user in g.USERLIST.items():
                     if user["tcp_socket"] == sock:
                         name_to_remove = nick
                         break
                 if name_to_remove:
-                    user_to_remove = USERLIST.pop(name_to_remove, None)
+                    user_to_remove = g.USERLIST.pop(name_to_remove, None)
 
             if name_to_remove and user_to_remove:
                 send_userlist_change("REMOVE", name_to_remove, user_to_remove)
@@ -266,12 +262,12 @@ def main():
     for i in range(100):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.bind((SERVER_IP, SERVER_PORT))
-            print(f"Server erfolgreich an Port {SERVER_PORT} gebunden.")
+            sock.bind((g.SERVER_IP, PORT))
+            print(f"Server erfolgreich an {g.SERVER_IP}:{PORT} gebunden.")
             break
         except OSError:
-            print(f"Port {SERVER_PORT} besetzt, versuche nächsten...")
-            SERVER_PORT += 1
+            print(f"Port {PORT} besetzt, versuche nächsten...")
+            PORT += 1
             sock.close()
     listen(sock)
 
