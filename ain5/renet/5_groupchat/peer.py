@@ -1,323 +1,121 @@
-import time
-import threading
-import socket
-from typing import Any
-import re
-
-SERVER_IP = '127.0.0.1'
-SERVER_PORT = 50000
-server_activity_period = 30
-USERLIST = {}
-srvCom = None
-lock_USERLIST = threading.Lock()
+from ServerCommunication import ServerCommunication
+from UDPListener import UDPListener
+from P2PManager import P2PManager
+import global_variables as g
 
 
-class ServerCommunication:
-    def __init__(self, nickname: str = 'nicky', ip: str = '127.0.0.2', udp_port: int = 60000, tcp_port: int = 50000, sock: socket.socket = None):
-        self.__name: str = nickname
-        self.__ip: str = ip
-        self.__udp: int = udp_port
-        self.__tcp: int = tcp_port
-        self.__sock: socket.socket = sock
+def main():
 
-    def __str__(self):
-        return f"USER|NAME={self.__name},IP={self.__ip},UDP={self.__udp},TCP={self.__tcp}"
+    g.list_all_cmds()
+    while (True):
+        # Test Server Connection
+        if g.srvCom is None and len(g.USERLIST) > 0:
+            print("\nServer-Verbindung verloren. Bereinige P2P-Subsystem...")
+            with g.lock_USERLIST:
+                g.USERLIST.clear()
 
-    def print_USERLIST(self):
-        with lock_USERLIST:
-            eintraege = [f"{nick},{info['ip']},{info['udp_port']}" for nick, info in USERLIST.items()]
-        userlist = "USERLIST|" + ";".join(eintraege) + "\0"
-        print(userlist)
+            if g.udpListener:
+                g.udpListener.stop()
+            if g.p2pManager:
+                g.p2pManager.close_all_chats()
 
-    def connect_and_register(self, server_ip: str, server_port: int) -> None:
-        global srvCom
-        register_msg: str = f"REGISTER|{self.__name}|{self.__ip}|{self.__udp}\0"
-        connected = False
-        current_port = server_port
-
+        # CLI
         try:
-            for i in range(100):
-                self.__sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                if self.__sock.connect_ex((server_ip, current_port)) == 0:
-                    print(f"Server erfolgreich an Port {current_port} erreicht.")
-                    connected = True
-                    break
-                else:
-                    print(f"Port {current_port} nicht erreichbar, versuche nächsten...")
-                    self.__sock.close()
-                    current_port += 1
-
-            if connected:
-                self.__sock.send(register_msg.encode('utf-8'))
-                t = threading.Thread(target=self.listen_to_server, daemon=True)
-                t.start()
+            data = input("$ ")
+            if "|" in data:
+                cmd, payload = data.split("|", 1)
             else:
-                print(f"Verbindung zum Server fehlgeschlagen (Ports {server_port} bis {current_port - 1} getestet).\n$ ", end="")
-                srvCom = None
-
-        except socket.timeout:
-            print(f"Timeout beim Verbindungsaufbau nach {time.asctime()}\n$ ", end="")
-            if self.__sock:
-                self.__sock.close()
-            srvCom = None
-        except socket.error:
-            print(f"Netzwerkfehler an Port {current_port}.\n$ ", end="")
-            if self.__sock:
-                self.__sock.close()
-            srvCom = None
-        except KeyboardInterrupt:
-            print("Client wird manuell beendet...")
-            if self.__sock:
-                self.__sock.close()
-            srvCom = None
-
-    def listen_to_server(self) -> None:
-        global srvCom
-        puffer = ""
-        # t_end = time.time() + server_activity_period
-        # while time.time() < t_end:
-        while True:
-            try:
-                data = self.__sock.recv(1024).decode('utf-8')
-                if not data:
-                    print(f"\n[Info] Alte Verbindung für '{self.__name}' sauber beendet.\n$ ", end="")
-                    self.__sock.close()
-                    if srvCom is self:
-                        srvCom = None
-                    break
-                puffer += data
-                while "\0" in puffer:
-                    msg, puffer = puffer.split("\0", 1)
-                    self.packet_code_from_server(msg)
-
-            except socket.timeout:
-                print(f"Timeout in receive nach {time.asctime()}.\n$ ")
-                self.__sock.close()
-                if srvCom is self:
-                    srvCom = None
-                break
-            except socket.error:
-                print("\nVerbindung zum Server unerwartet abgebrochen.\n$ ", end="")
-                self.__sock.close()
-                if srvCom is self:
-                    srvCom = None
-                break
-            except KeyboardInterrupt:
-                print("Client wird manuell beendet...")
-                self.__sock.close()
-                if srvCom is self:
-                    srvCom = None
-                break
-
-    def packet_code_from_server(self, msg: str) -> None:
-        global srvCom
-        try:
-            cmd, data = msg.split("|", 1)
+                cmd, payload = data, ""
             match cmd:
-                case "ERROR":
-                    print(f"\nERROR Response from Server: {data}")
-                    if self.__sock:
-                        self.__sock.close()
-                    if srvCom is self:
-                        srvCom = None
-
-                case "USERLIST":
-                    with lock_USERLIST:
-                        USERLIST.clear()
-                        users = data.split(";")
-                        for user in users:
-                            entry = user.split(",")
-                            if len(entry) == 3:
-                                USERLIST[entry[0]] = {'ip': entry[1], 'udp_port': entry[2]}
-                            else:
-                                raise Exception("INVALID_FORMAT")
-
-                case "UPDATE":
-                    data = data.split("|")
-                    if len(data) == 4:
-                        success: bool
-                        if (data[0] == "ADD"):
-                            with lock_USERLIST:
-                                if data[1] in USERLIST:
-                                    success = False
-                                else:
-                                    USERLIST[data[1]] = {'ip': data[2], 'udp_port': data[3]}
-                                    success = True
-
-                        elif (data[0] == "REMOVE"):
-                            with lock_USERLIST:
-                                user = USERLIST.pop(data[1], None)
-                                if user:
-                                    success = True
-                                else:
-                                    success = False
-                        else:
-                            raise Exception("INVALID_FORMAT")
-                        try:
-                            if success:
-                                self.__sock.send("SUCCESS\0".encode('utf-8'))
-                            else:
-                                self.__sock.send("ERROR|INVALID_UPDATE_FORMAT\0".encode('utf-8'))
-                        except socket.error:
-                            self.__sock.close()
-                            if srvCom is self:
-                                srvCom = None
+                case "REGISTER":
+                    payload = payload.split("|")
+                    if len(payload) == 4:
+                        name = payload[0]
+                        if g.srvCom:
+                            g.srvCom.disconnect()
+                        if not g.validate_ip(payload[1]):
+                            raise Exception("INVALID_IP")
+                        ip = payload[1]
+                        if not g.validate_port(payload[2]):
+                            raise Exception("INVALID_PORT")
+                        udp = int(payload[2])
+                        if not g.validate_port(payload[3]):
+                            raise Exception("INVALID_PORT")
+                        tcp = int(payload[3])
+                    # UDPListener
+                        g.udpListener = UDPListener(ip=ip, udp=udp, tcp=tcp)
+                        g.udpListener.start()
+                    # P2PManager
+                        g.p2pManager = P2PManager(name=name, ip=ip, tcp=tcp)
+                        g.p2pManager.start_server()
+                    # ServerCommunication
+                        g.srvCom = ServerCommunication(nickname=name, ip=ip, udp_port=udp, tcp_port=tcp)
+                        g.srvCom.connect_and_register(g.SERVER_IP, g.SERVER_PORT)
                     else:
                         raise Exception("INVALID_FORMAT")
 
-                case "LOGOUT_SUCCESS":
-                    print("Erfolgreich abgemeldet.")
-                    if self.__sock:
-                        self.__sock.close()
-                    srvCom = None
-                case "BROADCAST":
-                    data = data.split("|", 1)
-                    if len(data) >= 2:
-                        print(f"User: {data[0]} send a Broadcast with: {data[1]}\n$ ")
+                case "LOGOUT":
+                    if not payload:
+                        if g.srvCom:
+                            g.srvCom.disconnect()
+                            g.srvCom = None
                     else:
-                        try:
-                            self.__sock.send("ERROR|INVALID_BROADCAST_FORMAT\0".encode('utf-8'))
-                        except socket.error:
-                            self.__sock.close()
-                            if srvCom is self:
-                                srvCom = None
-
+                        raise Exception("INVALID_FORMAT")
+                case "BROADCAST":
+                    if payload:
+                        if g.srvCom:
+                            g.srvCom.send_global_message(payload)
+                    else:
+                        raise Exception("INVALID_FORMAT")
+                case "HELP":
+                    if not payload:
+                        g.list_all_cmds()
+                    else:
+                        raise Exception("INVALID_FORMAT")
+                case "EXIT":
+                    if not payload:
+                        exit(0)
+                    else:
+                        raise Exception("INVALID_FORMAT")
+                case "USER":
+                    if not payload:
+                        if g.srvCom:
+                            print(g.srvCom)
+                    else:
+                        raise Exception("INVALID_FORMAT")
+                case "USERLIST":
+                    if not payload:
+                        if g.srvCom:
+                            g.srvCom.print_USERLIST()
+                    else:
+                        raise Exception("INVALID_FORMAT")
+                case "HANDSHAKE":
+                    with g.lock_USERLIST:
+                        if not payload or not g.USERLIST or (payload not in g.USERLIST):
+                            raise Exception("Unknown Name")
+                    g.p2pManager.send_handshake(payload)
+                case "MSG":
+                    name, msg = payload.split("|", 1)
+                    with g.lock_USERLIST:
+                        if not name or not g.USERLIST or (name not in g.USERLIST):
+                            raise Exception("Unknown Name")
+                        if not msg:
+                            raise Exception("INVALID_FORMAT")
+                    g.p2pManager.send_message(name, msg)
                 case _:
-                    raise Exception("INVALID_FORMAT")
-
+                    print("I could not understand you")
         except Exception as e:
             match str(e):
-                case "INVALID_FORMAT":
-                    try:
-                        self.__sock.send("ERROR|INVALID_FORMAT\0".encode('utf-8'))
-                    except socket.error:
-                        self.__sock.close()
-                        if srvCom is self:
-                            srvCom = None
+                case "INVALID_FORMAT": print("INVALID_FORMAT")
+                case "INVALID_PORT": print("INVALID_PORT")
+                case "INVALID_IP": print("INVALID_IP")
+                case "Unknown Name": print("Unknown Name")
+                case _: print(f"Python-Fehler: {repr(e)}")
 
-    def send_global_message(self, text: str) -> None:
-        global srvCom
-        try:
-            self.__sock.send(f"BROADCAST|{text}\0".encode('utf-8'))
-        except socket.error:
-            self.__sock.close()
-            if srvCom is self:
-                srvCom = None
-
-    def disconnect(self) -> None:
-        global srvCom
-        try:
-            self.__sock.send("LOGOUT\0".encode('utf-8'))
-        except socket.error:
-            self.__sock.close()
-        if srvCom is self:
-            srvCom = None
+        except KeyboardInterrupt:
+            print("Peer wird manuell beendet...")
+            exit(0)
 
 
-def list_all_cmds():
-    print("Server Commands:")
-    print("REGISTER|Nickname|IP-Adresse|UDP-Port")
-    print("LOGOUT")
-    print("BROADCAST|Nachricht")
-    print("=================")
-    print("Peer Commands:")
-    print("HANDSHAKE|Nickname|TCP-Port")
-    print("MSG|Nachricht")
-    print("=================")
-    print("misc commands:")
-    print("EXIT (Exits the application, duh)")
-    print("HELP (Prints this list of commands)")
-    print("USERLIST (Prints all logged in users)")
-    print("USER (Prints your current userinfo in case you forgot)")
-    print("=================")
-
-
-list_all_cmds()
-while (True):
-    try:
-        data = input("$ ")
-        if "|" in data:
-            cmd, payload = data.split("|", 1)
-        else:
-            cmd, payload = data, ""
-
-        match cmd:
-            case "REGISTER":
-                payload = payload.split("|")
-                ip_regex = r'^(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})$'
-                if len(payload) == 3:
-                    if srvCom:
-                        srvCom.disconnect()
-                    try:
-                        udp_port = int(payload[2])
-                    except ValueError:
-                        raise Exception("INVALID_PORT")
-                    if (0 > udp_port or udp_port > 65535):
-                        raise Exception("INVALID_PORT")
-                    if re.fullmatch(ip_regex, payload[1]):
-                        srvCom = ServerCommunication(nickname=payload[0], ip=payload[1], udp_port=udp_port)
-                        srvCom.connect_and_register(SERVER_IP, SERVER_PORT)
-                    else:
-                        raise Exception("INVALID_IP")
-                else:
-                    raise Exception("INVALID_FORMAT")
-
-            case "LOGOUT":
-                if not payload:
-                    if srvCom:
-                        srvCom.disconnect()
-                        srvCom = None
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case "BROADCAST":
-                if payload:
-                    if srvCom:
-                        srvCom.send_global_message(payload)
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case "HELP":
-                if not payload:
-                    list_all_cmds()
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case "EXIT":
-                if not payload:
-                    exit(0)
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case "USER":
-                if not payload:
-                    if srvCom:
-                        print(srvCom)
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case "USERLIST":
-                if not payload:
-                    if srvCom:
-                        srvCom.print_USERLIST()
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case "HANDSHAKE":
-                payload = payload.split("|")
-                if len(payload) == 2:
-                    if srvCom:
-                        pass
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case "MSG":
-                if payload:
-                    if srvCom:
-                        pass
-                else:
-                    raise Exception("INVALID_FORMAT")
-            case _:
-                print("I could not understand you")
-    except Exception as e:
-        match str(e):
-            case "INVALID_FORMAT": print("INVALID_FORMAT")
-            case "INVALID_PORT": print("INVALID_PORT")
-            case "INVALID_IP": print("INVALID_IP")
-
-    except KeyboardInterrupt:
-        print("Server wird manuell beendet...")
-        exit(0)
+if __name__ == "__main__":
+    main()

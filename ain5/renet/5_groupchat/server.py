@@ -101,7 +101,6 @@ def packet_code(data: str, sock: socket.socket, addr: tuple[str, int]) -> None:
 
             case "SUCCESS":
                 print("UPDATE_SUCCESS")
-                pass
 
             case _:
                 raise Exception("INVALID_FORMAT")
@@ -114,6 +113,7 @@ def packet_code(data: str, sock: socket.socket, addr: tuple[str, int]) -> None:
             case "INVALID_PORT":
                 print("INVALID_PORT")
                 send_back_error("ERROR|INVALID_PORT\0", sock)
+            case _: print(f"Python-Fehler: {repr(e)}")
 
 
 def send_whole_userlist(nickname: str) -> None:
