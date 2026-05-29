@@ -49,8 +49,8 @@ def main():
                         g.p2pManager = P2PManager(name=name, ip=ip, tcp=tcp)
                         g.p2pManager.start_server()
                     # ServerCommunication
+                        print(f"Trying to connect to the server at {g.SERVER_IP}:{g.SERVER_PORT}")
                         g.srvCom = ServerCommunication(nickname=name, ip=ip, udp_port=udp, tcp_port=tcp)
-                        print(f"Trying to connect to the server at:{g.SERVER_IP}:{g.SERVER_PORT}")
                         g.srvCom.connect_and_register(g.SERVER_IP, g.SERVER_PORT)
                     else:
                         raise Exception("INVALID_FORMAT")
