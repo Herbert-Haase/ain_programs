@@ -3,9 +3,8 @@ import re
 
 # Desktop nordvpn meshnet
 # SERVER_IP = '100.118.82.170'
-SERVER_IP = '0.0.0.0'
 # laptop nordvpn meshnet
-# SERVER_IP = '100.80.232.18'
+SERVER_IP = '100.80.232.18'
 SERVER_PORT = 50000
 server_activity_period = 30
 USERLIST = {}  # {name:{ip:ip,udp_port:port}}

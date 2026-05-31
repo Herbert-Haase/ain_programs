@@ -16,13 +16,18 @@ class UDPListener:
         t.start()
 
     def stop(self) -> None:
-        self.udp_sock.close()
+        if hasattr(self, "udp_sock") and self.udp_sock:
+            try:
+                self.udp_sock.close()
+            except Exception as e:
+                print(f"Python-Fehler: {repr(e)}")
 
     def listen_to_peer(self) -> None:
         try:
             try:
                 self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self.udp_sock.bind((self.__ip, self.__udp))
+                self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             except socket.error:
                 print("UDP Port bereits besetzt\n$ ", end="")
                 self.udp_sock.close()

@@ -12,6 +12,7 @@ class P2PManager:
         self.PENDING_HANDSHAKES = {}  # {name:event}
         self.ACTIVE_CHATS = {}  # {name:socket}
         self.lock_chats = threading.Lock()
+        self.srv_sock = sock
 
     def start_server(self) -> None:
         t = threading.Thread(target=self.__listen_tcp_loop, daemon=True)
@@ -19,13 +20,13 @@ class P2PManager:
 
     def __listen_tcp_loop(self) -> None:
         try:
-            srv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            srv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            srv_sock.bind((self.__ip, self.__tcp))
-            srv_sock.listen(5)
+            self.srv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.srv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.srv_sock.bind((self.__ip, self.__tcp))
+            self.srv_sock.listen(5)
 
             while True:
-                sock, addr = srv_sock.accept()
+                sock, addr = self.srv_sock.accept()
                 peer_name = None
                 with g.lock_USERLIST:
                     for name, user in g.USERLIST.items():
@@ -42,6 +43,8 @@ class P2PManager:
                 else:
                     sock.close()
         except socket.error:
+            if hasattr(self, 'srv_sock') and self.srv_sock._closed:
+                return
             print("__listen_tcp_loop:Verbindungsproblem")
         except socket.timeout:
             print("__listen_tcp_loop:Timeout")
@@ -148,6 +151,11 @@ class P2PManager:
                 self.ACTIVE_CHATS.pop(name)
 
     def close_all_chats(self) -> None:
+        if hasattr(self, 'srv_sock') and self.srv_sock:
+            try:
+                self.srv_sock.close()
+            except Exception as e:
+                print(f"Python-Fehler: {repr(e)}")
         with self.lock_chats:
             for name, sock in list(self.ACTIVE_CHATS.items()):
                 try:

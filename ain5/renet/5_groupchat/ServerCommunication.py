@@ -103,7 +103,10 @@ class ServerCommunication:
     def packet_code_from_server(self, msg: str) -> None:
         errors = ["INVALID_FORMAT", "NAME_ALREADY_USED", "INVALID_PORT", "LOGOUT_FAILED"]
         try:
-            cmd, data = msg.split("|", 1)
+            if "|" in msg:
+                cmd, data = msg.split("|", 1)
+            else:
+                cmd, data = (msg, "")
             match cmd:
                 case "ERROR":
                     print(f"\nERROR Response from Server: {data}")
