@@ -1,9 +1,22 @@
+#!/usr/bin/python3
+
 import time
 import threading
 import socket
 from typing import Any
 import re
 import global_variables as g
+
+
+class BoundSocket(socket.socket):
+    def __init__(self, family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0, fileno=None):
+        super().__init__(family, type, proto, fileno)
+        self.is_bound = False
+
+    def bind(self, address):
+        super().bind(address)
+        self.is_bound = True
+
 
 def main():
 
@@ -259,9 +272,9 @@ def main():
             if name_to_remove and user_to_remove:
                 send_userlist_change("REMOVE", name_to_remove, user_to_remove)
 
-    for i in range(100):
+    for _ in range(100):
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock = BoundSocket(socket.AF_INET, socket.SOCK_STREAM)
             sock.bind((g.SERVER_IP, PORT))
             print(f"Server erfolgreich an {g.SERVER_IP}:{PORT} gebunden.")
             break
@@ -269,7 +282,11 @@ def main():
             print(f"Port {PORT} besetzt, versuche nächsten...")
             PORT += 1
             sock.close()
-    listen(sock)
+
+    if sock and sock.is_bound:
+        listen(sock)
+    else:
+        print(f"Alle Ports von {g.SERVER_PORT} bis {PORT} durchprobiert, keinen Freien gefunden\n")
 
 
 if __name__ == "__main__":

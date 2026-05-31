@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from ServerCommunication import ServerCommunication
 from UDPListener import UDPListener
 from P2PManager import P2PManager

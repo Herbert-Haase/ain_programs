@@ -1,3 +1,13 @@
+account:
+```
+komnetze.htwg+8@gmail.com
+```
+password:
+```
+PasswortfuerdieRNVorlesung
+```
+
+
 Hier ist die Schritt-für-Schritt-Anleitung, um das Meshnet über das Terminal (CLI) einzurichten und für eure Laborübung zu konfigurieren:
 
 ### 1. NordVPN installieren & Dienst starten
@@ -19,7 +29,7 @@ Nutze für den Login die bereitgestellten Daten aus der Vorlesung (`komnetze.htw
 
 ```bash
 nordvpn login
-nordvpn meshnet on
+nordvpn set meshnet on
 
 ```
 
