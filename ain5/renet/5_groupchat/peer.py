@@ -77,6 +77,9 @@ def main():
                         raise Exception("INVALID_FORMAT")
                 case "EXIT":
                     if not payload:
+                        if g.srvCom:
+                            g.srvCom.disconnect()
+                            g.srvCom = None
                         exit(0)
                     else:
                         raise Exception("INVALID_FORMAT")
@@ -117,6 +120,9 @@ def main():
 
         except KeyboardInterrupt:
             print("Peer wird manuell beendet...")
+            if g.srvCom:
+                g.srvCom.disconnect()
+                g.srvCom = None
             exit(0)
 
 

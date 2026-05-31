@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import subprocess
 import time
 import threading
 import socket
@@ -18,9 +19,25 @@ class BoundSocket(socket.socket):
         self.is_bound = True
 
 
+def get_meshnet_ip(interface_name='nordlynx') -> str:
+    try:
+        cmd = ["ip", "-4", "addr", "show", "dev", interface_name]
+        output = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode('utf-8')
+
+        match = re.search(r"inet\s+([0-9.]+)", output)
+        if match:
+            return match.group(1)
+    except subprocess.CalledProcessError:
+        pass
+
+    return '0.0.0.0'
+
+
 def main():
 
     PORT = g.SERVER_PORT
+    # IP = g.SERVER_IP
+    SERVER_IP = get_meshnet_ip('nordlynx')
 
     # t_end = time.time() + g.server_activity_period  # Ende der Aktivitätsperiode
 
@@ -275,8 +292,9 @@ def main():
     for _ in range(100):
         try:
             sock = BoundSocket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.bind((g.SERVER_IP, PORT))
-            print(f"Server erfolgreich an {g.SERVER_IP}:{PORT} gebunden.")
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind((SERVER_IP, PORT))
+            print(f"Server erfolgreich an {SERVER_IP}:{PORT} gebunden.")
             break
         except OSError:
             print(f"Port {PORT} besetzt, versuche nächsten...")
