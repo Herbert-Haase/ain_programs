@@ -173,6 +173,8 @@ class ServerCommunication:
                     if self.__sock:
                         self.__sock.close()
                     g.srvCom = None
+                case "SUCCESS":
+                    pass
                 case "BROADCAST":
                     data = data.split("|", 1)
                     if len(data) >= 2:

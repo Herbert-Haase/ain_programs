@@ -38,7 +38,7 @@ class P2PManager:
                     with self.lock_chats:
                         self.ACTIVE_CHATS[peer_name] = sock
                     print(f"CHAT: Verbindung von USER:{peer_name} akzeptiert\n$ ")
-                    t = threading.Thread(target=self.__receive, args=(name, sock), daemon=True)
+                    t = threading.Thread(target=self.__receive, args=(peer_name, sock), daemon=True)
                     t.start()
                 else:
                     sock.close()
@@ -78,7 +78,6 @@ class P2PManager:
     def __wait_handshake(self, name: str):
         ip = None
         udp = None
-        tcp = None
         with g.lock_USERLIST:
             ip = g.USERLIST[name]["ip"]
             udp = g.USERLIST[name]["udp_port"]
@@ -88,14 +87,33 @@ class P2PManager:
                 self.PENDING_HANDSHAKES[name] = threading.Event()
                 g.udpListener.udp_sock.sendto(f"HANDSHAKE|{self.__name}|{self.__tcp}\0".encode("utf-8"), (ip, udp))
                 if self.PENDING_HANDSHAKES[name].wait(timeout=10):
-                    with g.lock_USERLIST:
-                        tcp = g.USERLIST[name]["tcp_port"]
                     self.PENDING_HANDSHAKES.pop(name, None)
-                    self.__start_chat(name, ip, tcp)
+                    print(f"Handshake von USER:{name} bestätigt. Warte auf eingehende TCP-Verbindung...\n$ ", end="")
                 else:
                     self.PENDING_HANDSHAKES.pop(name, None)
+                    print(f"Handshake-Timeout mit USER:{name}\n$ ", end="")
         except socket.error:
             print(f"Handshake mit USER:{name} fehlgeschlagen beim Senden.\n$ ")
+
+    def connect_to_peer(self, name: str, ip: str, tcp: int) -> None:
+        t = threading.Thread(target=self.__execute_connect, args=(name, ip, tcp), daemon=True)
+        t.start()
+
+    def __execute_connect(self, name: str, ip: str, tcp: int) -> None:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind((self.__ip, 0))
+            sock.connect((ip, tcp))
+
+            with self.lock_chats:
+                self.ACTIVE_CHATS[name] = sock
+
+            print(f"CHAT: Verbindung mit USER:{name} erfolgreich aufgebaut\n$ ", end="")
+            self.__receive(name, sock)
+
+        except socket.error as e:
+            print(f"CHAT: Verbindungsaufbau zu USER:{name} fehlgeschlagen: {e}\n$ ", end="")
 
     def __start_chat(self, name: str, ip: str, tcp: int):
         try:

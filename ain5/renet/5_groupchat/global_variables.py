@@ -22,7 +22,7 @@ def list_all_cmds():
     print("BROADCAST|Nachricht")
     print("=================")
     print("Peer Commands:")
-    print("HANDSHAKE|Nickname")
+    # print("HANDSHAKE|Nickname")
     print("MSG|Name|Nachricht")
     print("=================")
     print("misc commands:")

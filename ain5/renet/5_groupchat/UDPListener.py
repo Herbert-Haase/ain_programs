@@ -68,6 +68,7 @@ class UDPListener:
 
                             print(f"USER:{name} hat dir eine Chatanfrage gesendet\n$ ")
                             self.udp_sock.sendto(f"HANDSHAKE_RETURN|{self.__tcp}\0".encode("utf-8"), (ip, udp))
+                            g.p2pManager.connect_to_peer(name, ip, int(tcp))
 
                 case "HANDSHAKE_RETURN":
                     if not g.validate_port(data):
